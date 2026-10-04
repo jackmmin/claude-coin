@@ -1,10 +1,12 @@
-from .utils import FEE_RATE, sma, build_result
+from .utils import FEE_RATE, build_result
+from .filters import build_trend_filter, passes_volume_filter
 
 
 def run(data, k=0.5, initial_capital=1000000,
         tb_sl=-0.02, tb_trail=0.03,
-        tb_ma1_filter=False, tb_ma1_period=20,
-        tb_ma2_filter=False, tb_ma2_period=60,
+        tb_ma1_filter=False, tb_ma1_period=50,
+        tb_ma2_filter=False, tb_ma2_period=200,
+        tb_vwma_filter=False, tb_vwma_period=100,
         tb_volume_filter=False, tb_volume_mult=1.5):
     """
     변동성 돌파 진입 + 타이트 고정 손절 + 트레일링 스탑 익절
@@ -17,10 +19,12 @@ def run(data, k=0.5, initial_capital=1000000,
     portfolio = initial_capital
     last_trade_date = None
 
-    ma_configs = [
-        (tb_ma1_filter, tb_ma1_period),
-        (tb_ma2_filter, tb_ma2_period),
-    ]
+    # 추세필터: 단기 MA / 장기 MA / VWMA
+    trend_ok = build_trend_filter(
+        data,
+        [(tb_ma1_filter, tb_ma1_period), (tb_ma2_filter, tb_ma2_period)],
+        (tb_vwma_filter, tb_vwma_period),
+    )
 
     for i in range(1, len(data)):
         prev = data[i - 1]
@@ -30,30 +34,13 @@ def run(data, k=0.5, initial_capital=1000000,
         if last_trade_date == curr_date:
             continue
 
-        # MA 추세 필터: 시가가 각 MA 위에 있어야 진입
-        skip = False
-        closes_i = [c["trade_price"] for c in data[:i]]
-        for enabled, period in ma_configs:
-            if not enabled:
-                continue
-            if i < period:
-                skip = True
-                break
-            ma = sma(closes_i, period)
-            if ma is not None and curr["opening_price"] < ma:
-                skip = True
-                break
-        if skip:
+        # 추세필터: 활성화된 모든 평균선(MA/VWMA) 위에 시가가 있어야 진입
+        if not trend_ok(i, curr["opening_price"]):
             continue
 
-        # 볼륨 필터: 당일 거래량이 최근 20봉 평균 × 배수 미만이면 제외
-        if tb_volume_filter:
-            vol_window = data[max(0, i - 20):i]
-            vols = [c.get("candle_acc_trade_volume", 0) for c in vol_window]
-            avg_vol = sum(vols) / len(vol_window) if vol_window else 0
-            curr_vol = curr.get("candle_acc_trade_volume", 0)
-            if avg_vol > 0 and curr_vol < avg_vol * tb_volume_mult:
-                continue
+        # 볼륨필터: 당일 거래량이 최근 20봉 평균 × 배수 미만이면 제외
+        if tb_volume_filter and not passes_volume_filter(data, i, tb_volume_mult):
+            continue
 
         prev_range = prev["high_price"] - prev["low_price"]
         if prev_range <= 0:
@@ -125,6 +112,7 @@ def run(data, k=0.5, initial_capital=1000000,
         candles=data, k=k, tb_sl=tb_sl, tb_trail=tb_trail,
         tb_ma1_filter=tb_ma1_filter, tb_ma1_period=tb_ma1_period,
         tb_ma2_filter=tb_ma2_filter, tb_ma2_period=tb_ma2_period,
+        tb_vwma_filter=tb_vwma_filter, tb_vwma_period=tb_vwma_period,
         tb_volume_filter=tb_volume_filter, tb_volume_mult=tb_volume_mult,
         total_candles=len(data),
     )

@@ -1,5 +1,8 @@
 from exchanges import get_exchange
-from .strategies import k_volatility, rsi_oversold, ma_golden_cross, bollinger_bounce, trailing_breakout, rsi_divergence_trail
+from .strategies import (
+    k_volatility, rsi_oversold, ma_golden_cross, bollinger_bounce,
+    trailing_breakout, rsi_divergence_trail, turtle,
+)
 
 
 def run_backtest(
@@ -7,13 +10,14 @@ def run_backtest(
     strategy="K_VOLATILITY_BREAKOUT",
     k=0.5,
     tb_sl=-0.02, tb_trail=0.03,
-    tb_ma1_filter=False, tb_ma1_period=20,
-    tb_ma2_filter=False, tb_ma2_period=60,
+    tb_ma1_filter=False, tb_ma1_period=50,
+    tb_ma2_filter=False, tb_ma2_period=200,
+    tb_vwma_filter=False, tb_vwma_period=100,
     tb_volume_filter=False, tb_volume_mult=1.5,
     k_tp=0.05, k_sl=-0.03, k_use_tp=True, k_use_sl=True,
-    k_ma1_filter=False, k_ma1_period=5,
-    k_ma2_filter=False, k_ma2_period=20,
-    k_ma3_filter=False, k_ma3_period=60,
+    k_ma1_filter=False, k_ma1_period=50,
+    k_ma2_filter=False, k_ma2_period=200,
+    k_vwma_filter=False, k_vwma_period=100,
     k_volume_filter=False, k_volume_mult=1.5,
     rsi_period=14, rsi_threshold=30, rsi_exit=62, rsi_tp=0.07, rsi_sl=-0.04,
     rsi_entry_mode="crossover",
@@ -31,7 +35,16 @@ def run_backtest(
     rdi_rsi_period=14, rdi_lookback=30, rdi_vol_mult=1.5,
     rdi_trail_pct=0.03, rdi_sl_pct=-0.03,
     rdi_ma_filter=False, rdi_ma_period=60,
-    interval="days", count=200, initial_capital=1000000,
+    # 터틀 트레이딩 (돈치안 채널 돌파 + ATR 유닛 + 피라미딩)
+    tt_system=1, tt_entry_period=20, tt_exit_period=10, tt_failsafe_period=55,
+    tt_use_skip=True, tt_atr_period=20, tt_risk_pct=0.01,
+    tt_add_step=0.5, tt_max_units=4, tt_stop_n=2.0,
+    tt_use_dd_rule=True, tt_dd_trigger=0.10, tt_dd_reduce=0.20,
+    tt_ma1_filter=False, tt_ma1_period=50,
+    tt_ma2_filter=False, tt_ma2_period=200,
+    tt_vwma_filter=False, tt_vwma_period=100,
+    tt_volume_filter=False, tt_volume_mult=1.5,
+    interval="days", count=1000, initial_capital=1000000,
 ):
     exch = get_exchange(exchange)
     candles = exch.get_candles_bulk(market, count=count, interval=interval)
@@ -46,13 +59,14 @@ def run_backtest(
                                      tb_sl=tb_sl, tb_trail=tb_trail,
                                      tb_ma1_filter=tb_ma1_filter, tb_ma1_period=tb_ma1_period,
                                      tb_ma2_filter=tb_ma2_filter, tb_ma2_period=tb_ma2_period,
+                                     tb_vwma_filter=tb_vwma_filter, tb_vwma_period=tb_vwma_period,
                                      tb_volume_filter=tb_volume_filter, tb_volume_mult=tb_volume_mult)
     if strategy == "K_VOLATILITY_BREAKOUT":
         return k_volatility.run(data, k=k, initial_capital=initial_capital,
                                 k_tp=k_tp, k_sl=k_sl, k_use_tp=k_use_tp, k_use_sl=k_use_sl,
                                 k_ma1_filter=k_ma1_filter, k_ma1_period=k_ma1_period,
                                 k_ma2_filter=k_ma2_filter, k_ma2_period=k_ma2_period,
-                                k_ma3_filter=k_ma3_filter, k_ma3_period=k_ma3_period,
+                                k_vwma_filter=k_vwma_filter, k_vwma_period=k_vwma_period,
                                 k_volume_filter=k_volume_filter, k_volume_mult=k_volume_mult)
     if strategy == "RSI_OVERSOLD_BOUNCE":
         return rsi_oversold.run(data, period=rsi_period, threshold=rsi_threshold,
@@ -81,5 +95,18 @@ def run_backtest(
             vol_mult=rdi_vol_mult, trail_pct=rdi_trail_pct, sl_pct=rdi_sl_pct,
             ma_filter=rdi_ma_filter, ma_period=rdi_ma_period,
             initial_capital=initial_capital,
+        )
+    if strategy == "TURTLE_TRADING":
+        return turtle.run(
+            data, initial_capital=initial_capital,
+            tt_system=tt_system, tt_entry_period=tt_entry_period,
+            tt_exit_period=tt_exit_period, tt_failsafe_period=tt_failsafe_period,
+            tt_use_skip=tt_use_skip, tt_atr_period=tt_atr_period, tt_risk_pct=tt_risk_pct,
+            tt_add_step=tt_add_step, tt_max_units=tt_max_units, tt_stop_n=tt_stop_n,
+            tt_use_dd_rule=tt_use_dd_rule, tt_dd_trigger=tt_dd_trigger, tt_dd_reduce=tt_dd_reduce,
+            tt_ma1_filter=tt_ma1_filter, tt_ma1_period=tt_ma1_period,
+            tt_ma2_filter=tt_ma2_filter, tt_ma2_period=tt_ma2_period,
+            tt_vwma_filter=tt_vwma_filter, tt_vwma_period=tt_vwma_period,
+            tt_volume_filter=tt_volume_filter, tt_volume_mult=tt_volume_mult,
         )
     return {"error": f"알 수 없는 전략: {strategy}"}

@@ -1,0 +1,129 @@
+  <!-- 백테스팅 탭 -->
+  <div class="tab-pane" id="tab-backtesting">
+    <div class="bt-controls">
+      <label>
+        전략:
+        <select id="strategySelect" onchange="onStrategyChange()">
+          <option value="K_VOLATILITY_BREAKOUT">K변동성 돌파</option>
+          <option value="TRAILING_BREAKOUT">트레일링 스탑 돌파</option>
+          <option value="RSI_DIVERGENCE_TRAIL">RSI 다이버전스 + 트레일링</option>
+          <option value="RSI_OVERSOLD_BOUNCE">RSI 과매도 반등</option>
+          <option value="MA_GOLDEN_CROSS">MA 골든크로스</option>
+          <option value="BOLLINGER_BOUNCE">볼린저밴드 반등</option>
+          <option value="TURTLE_TRADING">터틀 트레이딩</option>
+        </select>
+      </label>
+      <label>
+        타임프레임:
+        <select id="intervalSelect">
+          <option value="minutes15">15분봉</option>
+          <option value="minutes60">1시간봉</option>
+          <option value="minutes240">4시간봉</option>
+          <option value="days" selected>1일봉</option>
+          <option value="weeks">주봉</option>
+          <option value="months">월봉</option>
+        </select>
+      </label>
+      <label>
+        캔들 수:
+        <input type="number" id="candleCount" min="30" max="1000" step="10" value="1000">
+      </label>
+      <label>
+        초기비용 (₩):
+        <input type="text" class="wide" id="initialCapital" value="1,000,000" inputmode="numeric">
+      </label>
+      {% include "partials/backtesting_params.html" %}
+      <button class="bt-run-btn" id="btRunBtn">백테스팅 실행</button>
+    </div>
+
+    <p id="strategyOverview" style="font-size:0.82rem;color:#58a6ff;margin-bottom:4px;font-weight:500;"></p>
+    <p id="strategyDesc" style="font-size:0.8rem;color:#8b949e;margin-bottom:18px;"></p>
+
+    <div id="btLoadingMsg">
+      <div class="spinner" style="margin:0 auto 12px;"></div>
+      <span id="btLoadingText">캔들 데이터 수집 중... (약 5~10초 소요)</span>
+    </div>
+
+    <div id="btErrorMsg" style="display:none;padding:14px 18px;background:#2d1a1a;border:1px solid #f85149;border-radius:8px;color:#f85149;font-size:0.9rem;text-align:center;margin-bottom:16px;">
+      <span id="btErrorText"></span>
+    </div>
+
+    <div id="btResult">
+      <!-- 현재 시그널 -->
+      <div class="signal-box" id="signalBox">
+        <div class="signal-badge" id="signalBadge">-</div>
+        <div class="signal-detail" id="signalDetail"></div>
+      </div>
+
+      <!-- 통계 -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="s-label">총 거래 횟수</div>
+          <div class="s-value neutral" id="statTrades">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">승률</div>
+          <div class="s-value neutral" id="statWinRate">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">초기 투자금</div>
+          <div class="s-value neutral" id="statInitial">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">누적 수익률</div>
+          <div class="s-value neutral" id="statTotalReturn">-</div>
+        </div>
+        <!-- <div class="stat-card">
+          <div class="s-label">평균 수익률 / 건</div>
+          <div class="s-value neutral" id="statAvgPnl">-</div>
+        </div> -->
+        <div class="stat-card">
+          <div class="s-label">순이익 / 손실</div>
+          <div class="s-value neutral" id="statProfitLoss">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">최종 평가금</div>
+          <div class="s-value neutral" id="statFinal">-</div>
+        </div>
+      </div>
+
+      <!-- 백테스팅 캔들 차트 (TradingView 위젯) -->
+      <div class="chart-wrap" id="btChartWrap" style="margin-bottom:0;padding:0;overflow:hidden;">
+        <div id="btCandleChart" style="height:400px;"></div>
+        <div class="chart-resize-handle" data-target="btCandleChart"></div>
+      </div>
+
+      <!-- RSI 서브차트 (RSI 관련 전략에서만 표시) -->
+      <div class="chart-wrap" id="btRsiChartWrap" style="display:none;margin-bottom:20px;padding:0;overflow:hidden;">
+        <div id="btRsiChart" style="height:160px;"></div>
+      </div>
+
+      <!-- 에쿼티 커브 -->
+      <div class="chart-wrap" style="margin-bottom:20px;">
+        <canvas id="equityChart" style="height:260px;max-height:260px;"></canvas>
+      </div>
+
+      <!-- 최근 거래 내역 -->
+      <div class="trades-table-wrap">
+        <h3 id="tradesTitle">최근 거래 내역</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:center">#</th>
+              <th style="text-align:left">진입일시</th>
+              <th style="text-align:left">청산일시</th>
+              <th>진입가</th>
+              <th>청산가</th>
+              <th>진입시드</th>
+              <th>수수료</th>
+              <th>수익률</th>
+              <th>손익 (₩)</th>
+              <th>시드</th>
+              <th>결과</th>
+            </tr>
+          </thead>
+          <tbody id="tradesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>

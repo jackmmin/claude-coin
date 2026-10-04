@@ -1,0 +1,164 @@
+  <!-- 실시간 매매 탭 -->
+  <div class="tab-pane" id="tab-live-trading">
+
+    <div class="lt-warning">
+      ⚠️ 실시간 매매는 실제 자금으로 거래됩니다. 손실이 발생할 수 있으므로 신중하게 사용하세요.<br>
+      최대 포지션은 잔액의 50% 이하이며, 마켓당 1개의 포지션만 허용됩니다.
+    </div>
+
+    <!-- API 키 설정 -->
+    <div class="lt-section">
+      <h3>API 키 설정</h3>
+      <p style="font-size:0.8rem;color:#8b949e;margin:0 0 12px;">
+        키 파일: <code id="ltKeyFilePath" style="background:#21262d;padding:1px 5px;border-radius:3px;">-</code>
+      </p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px;font-size:0.82rem;">
+        <span>자산조회 <span id="ltKeyStatusBalance" style="margin-left:4px;"></span></span>
+        <span>주문조회 <span id="ltKeyStatusOrderQuery" style="margin-left:4px;"></span></span>
+        <span>주문하기 <span id="ltKeyStatusOrder" style="margin-left:4px;"></span></span>
+      </div>
+      <div class="lt-form-row">
+        <button class="lt-btn lt-btn-test" onclick="testConnection()">연결 테스트</button>
+        <span id="ltConnStatus" style="font-size:0.82rem;color:#8b949e;"></span>
+      </div>
+    </div>
+
+    <!-- 매매 설정 -->
+    <div class="lt-section">
+      <h3>매매 설정</h3>
+      <div class="lt-form-row">
+        <span class="lt-label">마켓</span>
+        <select class="lt-input" id="ltMarket" style="max-width:200px;"></select>
+      </div>
+      <div class="lt-form-row">
+        <span class="lt-label">전략</span>
+        <select class="lt-input" id="ltStrategy" style="max-width:240px;">
+          <option value="K_VOLATILITY_BREAKOUT">K변동성 돌파</option>
+          <option value="TRAILING_BREAKOUT">트레일링 스탑 돌파</option>
+          <option value="RSI_DIVERGENCE_TRAIL">RSI 다이버전스 + 트레일링</option>
+          <option value="RSI_OVERSOLD_BOUNCE">RSI 과매도 반등</option>
+          <option value="MA_GOLDEN_CROSS">MA 골든크로스</option>
+          <option value="BOLLINGER_BOUNCE">볼린저밴드 반등</option>
+        </select>
+      </div>
+      <p id="ltStrategyDesc" style="font-size:0.82rem;color:#8b949e;margin:0 0 8px 0;padding-left:4px;line-height:1.6;"></p>
+      <div class="lt-form-row">
+        <span class="lt-label">타임프레임</span>
+        <select class="lt-input" id="ltTimeframe" style="max-width:160px;">
+          <option value="minutes60">1시간봉</option>
+          <option value="minutes240">4시간봉</option>
+          <option value="days" selected>1일봉</option>
+          <option value="weeks">주봉</option>
+        </select>
+      </div>
+      <div class="lt-form-row">
+        <span class="lt-label">포지션 크기</span>
+        <input type="range" class="lt-slider" id="ltPositionPct" min="10" max="50" step="5" value="30" oninput="document.getElementById('ltPctDisplay').textContent=this.value+'%'">
+        <span id="ltPctDisplay" style="color:#e6edf3;font-weight:700;min-width:36px;">30%</span>
+        <span style="font-size:0.78rem;color:#8b949e;">(잔액 대비)</span>
+      </div>
+    </div>
+
+    <!-- 제어 버튼 -->
+    <div class="lt-section" style="padding:16px 24px;">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <button class="lt-btn lt-btn-start" id="ltStartBtn" onclick="startTrading()">▶ 자동매매 시작</button>
+        <button class="lt-btn lt-btn-stop" id="ltStopBtn" onclick="stopTrading()" disabled>■ 자동매매 중지</button>
+        <span id="ltRunStatus" style="font-size:0.82rem;color:#8b949e;">
+          <span class="lt-status-dot off" id="ltDot"></span>대기 중
+        </span>
+      </div>
+    </div>
+
+    <!-- 자동매매 포지션 -->
+    <div class="lt-position-card empty" id="ltAutoPositionCard">
+      <div style="font-size:0.82rem;color:#8b949e;font-weight:600;margin-bottom:12px;">
+        <span style="background:#1c6ef3;color:#fff;padding:1px 7px;border-radius:10px;font-size:0.72rem;margin-right:6px;">자동</span>자동매매 포지션
+      </div>
+      <div id="ltAutoPositionBody" style="color:#8b949e;font-size:0.88rem;">포지션 없음</div>
+    </div>
+
+    <!-- 수동 포지션 -->
+    <div class="lt-position-card empty" id="ltManualPositionCard">
+      <div style="font-size:0.82rem;color:#8b949e;font-weight:600;margin-bottom:12px;">
+        <span style="background:#3fb950;color:#fff;padding:1px 7px;border-radius:10px;font-size:0.72rem;margin-right:6px;">수동</span>직접 진입 포지션
+      </div>
+      <div id="ltManualPositionForm" style="display:none;margin-bottom:12px;padding:12px;background:rgba(63,185,80,0.06);border:1px solid #238636;border-radius:8px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:0.72rem;color:#8b949e;margin-bottom:3px;">마켓</div>
+            <input id="mpMarket" class="lt-input" style="width:100%;padding:4px 8px;font-size:0.82rem;" placeholder="KRW-BTC" />
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:#8b949e;margin-bottom:3px;">진입가 (₩)</div>
+            <input id="mpEntryPrice" type="number" class="lt-input" style="width:100%;padding:4px 8px;font-size:0.82rem;" placeholder="100000000" />
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:#8b949e;margin-bottom:3px;">수량</div>
+            <input id="mpQuantity" type="number" class="lt-input" style="width:100%;padding:4px 8px;font-size:0.82rem;" placeholder="0.001" step="any" />
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:#8b949e;margin-bottom:3px;">진입일시</div>
+            <input id="mpEntryDatetime" type="datetime-local" class="lt-input" style="width:100%;padding:4px 8px;font-size:0.82rem;" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="lt-btn lt-btn-start" style="padding:5px 14px;font-size:0.82rem;" onclick="registerManualPosition()">등록</button>
+          <button class="lt-btn lt-btn-stop" style="padding:5px 14px;font-size:0.82rem;" onclick="toggleManualPositionForm()">취소</button>
+        </div>
+      </div>
+      <div id="ltManualPositionBody" style="color:#8b949e;font-size:0.88rem;">포지션 없음</div>
+    </div>
+
+    <!-- 잔액 -->
+    <div class="lt-section">
+      <h3>계좌 잔액 <button class="lt-btn lt-btn-test" style="padding:4px 10px;font-size:0.78rem;" onclick="refreshBalance()">새로고침</button></h3>
+      <div id="ltBalanceBody" style="font-size:0.88rem;color:#8b949e;">-</div>
+    </div>
+
+    <!-- 주문 이력 -->
+    <div class="trades-table-wrap">
+      <h3 style="display:flex;justify-content:space-between;align-items:center;">
+        실거래 주문 이력
+        <button class="lt-btn lt-btn-test" style="padding:4px 10px;font-size:0.78rem;" onclick="refreshOrders()">새로고침</button>
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">#</th>
+            <th style="text-align:left">구분</th>
+            <th style="text-align:left">마켓</th>
+            <th>체결가</th>
+            <th>수량</th>
+            <th>체결금액</th>
+            <th style="text-align:left">시각</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody id="ltOrdersBody"><tr><td colspan="8" style="text-align:center;color:#8b949e;padding:20px;">주문 없음</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- 실거래 손익 이력 -->
+    <div class="trades-table-wrap" style="margin-top:16px;">
+      <h3>실거래 손익 이력</h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">#</th>
+            <th style="text-align:left">진입일시</th>
+            <th style="text-align:left">청산일시</th>
+            <th>청산가</th>
+            <th>진입시드</th>
+            <th>수수료</th>
+            <th>수익률</th>
+            <th>손익 (₩)</th>
+            <th>시드</th>
+            <th style="text-align:left">결과</th>
+          </tr>
+        </thead>
+        <tbody id="ltTradesBody"><tr><td colspan="10" style="text-align:center;color:#8b949e;padding:20px;">거래 없음</td></tr></tbody>
+      </table>
+    </div>
+
+  </div>

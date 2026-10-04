@@ -60,6 +60,18 @@ function renderCurrentSignal(sig, strategy, fmt) {
       <div class="signal-row"><span class="signal-label">중간 밴드</span><span class="signal-value">${fmt(sig.middle_band)} ₩</span></div>
       <div class="signal-row"><span class="signal-label">상단 밴드</span><span class="signal-value">${fmt(sig.upper_band)} ₩</span></div>
       <div class="signal-row"><span class="signal-label">포지션</span><span class="signal-value">${sig.in_trade ? "보유 중" : "없음"}</span></div>`;
+  } else if (strategy === "TURTLE_TRADING") {
+    // 캔들이 부족해 계산되지 않은 값은 "-"로 표시
+    const won = v => v != null ? fmt(v) + " ₩" : "-";
+    const position = sig.in_trade ? `${sig.units} / ${sig.max_units} 유닛 보유`
+                   : sig.skipping ? "없음 (직전 돌파 수익으로 건너뜀)" : "없음";
+    html += `
+      <div class="signal-row"><span class="signal-label">현재가</span><span class="signal-value">${fmt(sig.current_price)} ₩</span></div>
+      <div class="signal-row"><span class="signal-label">진입 돌파가 (${sig.entry_period}봉 최고)</span><span class="signal-value">${won(sig.entry_high)}</span></div>
+      <div class="signal-row"><span class="signal-label">청산 이탈가 (${sig.exit_period}봉 최저)</span><span class="signal-value">${won(sig.exit_low)}</span></div>
+      <div class="signal-row"><span class="signal-label">N (ATR)</span><span class="signal-value">${won(sig.n)}</span></div>
+      <div class="signal-row"><span class="signal-label">손절가</span><span class="signal-value">${won(sig.stop_price)}</span></div>
+      <div class="signal-row"><span class="signal-label">포지션</span><span class="signal-value">${position}</span></div>`;
   }
   signalDetail.innerHTML = html;
 }
@@ -106,7 +118,7 @@ function renderBacktest(d) {
       <td style="text-align:center;color:#8b949e">${trades.length - idx}</td>
       <td style="text-align:left;color:#8b949e">${(t.buy_datetime  || "").slice(0,16).replace("T"," ")}</td>
       <td style="text-align:left;color:#8b949e">${(t.sell_datetime || "").slice(0,16).replace("T"," ")}</td>
-      <td>${fmt(t.buy_price)} ₩</td>
+      <td>${fmt(t.buy_price)} ₩${t.units ? ` <span style="color:#8b949e">(${t.units}유닛 평균)</span>` : ""}</td>
       <td>${fmt(t.sell_price)} ₩</td>
       <td style="color:#8b949e">${t.entry_amount != null ? fmt(t.entry_amount) + " ₩" : "-"}</td>
       <td style="color:#8b949e">${t.fee != null ? fmt(t.fee) + " ₩" : "-"}</td>

@@ -1,0 +1,39 @@
+  <!-- 차트 탭 -->
+  <div class="tab-pane active" id="tab-chart">
+    <div class="controls">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:#8b949e;">
+          타임프레임:
+          <select id="chartIntervalSelect">
+            <option value="minutes5">5분봉</option>
+            <option value="minutes15">15분봉</option>
+            <option value="minutes60">1시간봉</option>
+            <option value="minutes240">4시간봉</option>
+            <option value="days" selected>1일봉</option>
+            <option value="weeks">주봉</option>
+            <option value="months">월봉</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="ticker-bar" id="tickerBar">
+      <div class="ticker-card"><div class="label">현재가</div><div class="value neutral" id="t-price">-</div></div>
+      <div class="ticker-card"><div class="label">전일 대비</div><div class="value neutral" id="t-change">-</div></div>
+      <div class="ticker-card"><div class="label">등락률</div><div class="value neutral" id="t-rate">-</div></div>
+      <div class="ticker-card"><div class="label">24h 거래대금</div><div class="value neutral" id="t-vol">-</div></div>
+      <div class="ticker-card"><div class="label">52주 최고</div><div class="value neutral" id="t-high52">-</div></div>
+      <div class="ticker-card"><div class="label">52주 최저</div><div class="value neutral" id="t-low52">-</div></div>
+    </div>
+
+    <div class="chart-wrap" id="chartWrap" style="padding:0;overflow:hidden;">
+      <div id="tradingview-chart" style="height:480px;"></div>
+      <div class="chart-resize-handle" data-target="tradingview-chart"></div>
+    </div>
+
+    <!-- 전략 신호 카드 -->
+    <div id="signalCardsContainer" style="display:none; margin-top:20px;">
+      <div style="font-size:0.8rem; color:#8b949e; margin-bottom:10px; font-weight:600; letter-spacing:0.5px;">전략별 진입 신호</div>
+      <div id="signalCardsGrid" style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;"></div>
+    </div>
+  </div>
